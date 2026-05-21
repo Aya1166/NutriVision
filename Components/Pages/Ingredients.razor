@@ -1,0 +1,172 @@
+﻿@page "/ingredients"
+@rendermode InteractiveServer
+
+@using NutriVision.Models
+@using NutriVision.Services
+
+@inject IngredientService IngredientService
+
+@inject IJSRuntime JS
+
+<h1 class="page-title">Ingredients Management</h1>
+
+<div class="section-title">
+    Add New Ingredient
+</div>
+
+<EditForm Model="@ingredient"
+          OnValidSubmit="AddIngredient"
+          FormName="IngredientForm">
+
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-container">
+
+        <div class="input-group">
+            <label>Ingredient Name</label>
+
+            <InputText @bind-Value="ingredient.Name"
+                       placeholder="Ex: Chicken Breast" />
+        </div>
+
+        <div class="input-group">
+            <label>Calories (per unit)</label>
+
+            <InputNumber @bind-Value="ingredient.CaloriesPerUnit"
+                         placeholder="165" />
+        </div>
+
+        <div class="input-group">
+            <label>Protein (g)</label>
+
+            <InputNumber @bind-Value="ingredient.Protein"
+                         placeholder="31" />
+        </div>
+
+        <div class="input-group">
+            <label>Carbohydrates (g)</label>
+
+            <InputNumber @bind-Value="ingredient.Carbs"
+                         placeholder="0" />
+        </div>
+
+        <div class="input-group">
+            <label>Fat (g)</label>
+
+            <InputNumber @bind-Value="ingredient.Fat"
+                         placeholder="3.6" />
+        </div>
+
+        <div class="input-group">
+            <label>Measurement Unit</label>
+
+            <InputSelect @bind-Value="ingredient.Unit">
+
+                <option value="">Select unit</option>
+
+                <option value="Gram (g)">Gram (g)</option>
+
+                <option value="Milliliter (ml)">
+                    Milliliter (ml)
+                </option>
+
+                <option value="Piece">Piece</option>
+
+                <option value="Tablespoon">Tablespoon</option>
+
+                <option value="Cup">Cup</option>
+
+            </InputSelect>
+        </div>
+
+    </div>
+
+    <button class="add-btn" type="submit">
+        + Add Ingredient
+    </button>
+
+</EditForm>
+
+<div class="section-title">
+    Ingredient Library
+</div>
+
+<div class="ingredient-grid">
+
+    @foreach (var item in ingredients)
+    {
+        <div class="ingredient-card">
+
+            <div class="ingredient-header">
+
+                <h3>@item.Name</h3>
+
+                <span class="unit-badge">
+                    @item.Unit
+                </span>
+
+            </div>
+
+            <div class="nutrition-info">
+
+                <p>🔥 Calories: @item.CaloriesPerUnit kcal</p>
+
+                <p>🥩 Protein: @item.Protein g</p>
+
+                <p>🍞 Carbs: @item.Carbs g</p>
+
+                <p>🧈 Fat: @item.Fat g</p>
+
+            </div>
+
+            <button class="delete-btn"
+                    @onclick='async () =>
+                            {
+                                bool confirmed = await JS.InvokeAsync<bool>(
+                                    "confirm",
+                                    "Delete this ingredient?");
+
+                                if (confirmed)
+                                {
+                                    await DeleteIngredient(item.Id);
+                                }
+                            }'>
+
+                Delete Ingredient
+
+            </button>
+
+        </div>
+    }
+
+</div>
+
+@code {
+
+    private Ingredient ingredient = new();
+
+    private List<Ingredient> ingredients = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        ingredients = await IngredientService.GetIngredientsAsync();
+    }
+
+    private async Task AddIngredient()
+    {
+        await IngredientService.AddIngredientAsync(ingredient);
+
+        ingredients = await IngredientService.GetIngredientsAsync();
+
+        ingredient = new Ingredient();
+    }
+
+    private async Task DeleteIngredient(int id)
+    {
+        await IngredientService.DeleteIngredientAsync(id);
+
+        ingredients =
+            await IngredientService.GetIngredientsAsync();
+    }
+}

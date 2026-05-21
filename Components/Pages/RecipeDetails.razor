@@ -1,0 +1,124 @@
+﻿@page "/recipe-details/{RecipeId:int}"
+@rendermode InteractiveServer
+
+@using NutriVision.Models
+@using NutriVision.Services
+
+@inject IngredientService IngredientService
+@inject RecipeIngredientService RecipeIngredientService
+
+<h1 class="page-title">Recipe Ingredients</h1>
+
+<div class="form-container">
+
+    <div class="input-group">
+
+        <label>Select Ingredient</label>
+
+        <InputSelect @bind-Value="recipeIngredient.IngredientId">
+
+            <option value="0">Choose ingredient</option>
+
+            @foreach (var ingredient in ingredients)
+            {
+                <option value="@ingredient.Id">
+                    @ingredient.Name
+                </option>
+            }
+
+        </InputSelect>
+
+    </div>
+
+    <div class="input-group">
+
+        <label>Quantity</label>
+
+        <InputNumber @bind-Value="recipeIngredient.Quantity" />
+
+    </div>
+
+</div>
+
+<button class="add-btn" @onclick="AddIngredientToRecipe">
+    + Add To Recipe
+</button>
+
+<h2 class="section-title">
+    Ingredients List
+</h2>
+
+<div class="ingredient-grid">
+
+    @foreach (var item in recipeIngredients)
+    {
+        <div class="ingredient-card">
+
+            <h3>@item.Ingredient.Name</h3>
+
+            <p>Quantity: @item.Quantity</p>
+
+            <p>
+                Calories:
+                @(item.Quantity * item.Ingredient.CaloriesPerUnit)
+            </p>
+
+        </div>
+    }
+
+</div>
+
+<div class="insight-card">
+    @nutritionInsight
+</div>
+
+<h2 class="total-calories">
+    🔥 Total Calories: @totalCalories kcal
+</h2>
+
+@code {
+
+    [Parameter]
+    public int RecipeId { get; set; }
+
+    private RecipeIngredient recipeIngredient = new();
+
+    private List<Ingredient> ingredients = new();
+
+    private List<RecipeIngredient> recipeIngredients = new();
+
+    private double totalCalories;
+
+    private string nutritionInsight = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        ingredients = await IngredientService.GetIngredientsAsync();
+
+        await LoadRecipeIngredients();
+    }
+
+    private async Task AddIngredientToRecipe()
+    {
+        recipeIngredient.RecipeId = RecipeId;
+
+        await RecipeIngredientService
+            .AddIngredientToRecipeAsync(recipeIngredient);
+
+        recipeIngredient = new RecipeIngredient();
+
+        await LoadRecipeIngredients();
+    }
+
+    private async Task LoadRecipeIngredients()
+    {
+        recipeIngredients = await RecipeIngredientService
+            .GetRecipeIngredientsAsync(RecipeId);
+
+        totalCalories = await RecipeIngredientService
+            .CalculateRecipeCaloriesAsync(RecipeId);
+
+        nutritionInsight = await RecipeIngredientService
+            .GetRecipeInsightAsync(RecipeId);
+    }
+}

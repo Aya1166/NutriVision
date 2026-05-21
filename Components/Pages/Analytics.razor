@@ -1,0 +1,98 @@
+﻿@page "/analytics"
+@rendermode InteractiveServer
+
+@using NutriVision.Services
+
+@inject AnalyticsService AnalyticsService
+
+<h1 class="page-title">
+    Analytics Dashboard
+</h1>
+
+<div class="stats-grid">
+
+    <div class="stat-card">
+        <h3>Total Recipes</h3>
+        <p>@totalRecipes</p>
+    </div>
+
+    <div class="stat-card">
+        <h3>Total Ingredients</h3>
+        <p>@totalIngredients</p>
+    </div>
+
+    <div class="stat-card">
+        <h3>Average Prep Time</h3>
+        <p>@averagePrepTime min</p>
+    </div>
+
+</div>
+
+<div class="analytics-section">
+
+    <div class="analytics-card">
+
+        <h2>Recipes By Category</h2>
+
+        @foreach (var item in categoryStats)
+        {
+            <div class="analytics-row">
+
+                <span>@item.Category</span>
+
+                <span>@item.Count recipes</span>
+
+            </div>
+        }
+
+    </div>
+
+    <div class="analytics-card">
+
+        <h2>Cuisine Distribution</h2>
+
+        @foreach (var item in cuisineStats)
+        {
+            <div class="analytics-row">
+
+                <span>@item.Cuisine</span>
+
+                <span>@item.Count recipes</span>
+
+            </div>
+        }
+
+    </div>
+
+</div>
+
+@code {
+
+    private int totalRecipes;
+
+    private int totalIngredients;
+
+    private double averagePrepTime;
+
+    private List<CategoryStat> categoryStats = new();
+
+    private List<CuisineStat> cuisineStats = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        totalRecipes =
+            await AnalyticsService.GetTotalRecipesAsync();
+
+        totalIngredients =
+            await AnalyticsService.GetTotalIngredientsAsync();
+
+        averagePrepTime =
+            await AnalyticsService.GetAveragePreparationTimeAsync();
+
+        categoryStats =
+            await AnalyticsService.GetRecipesByCategoryAsync();
+
+        cuisineStats =
+            await AnalyticsService.GetCuisineDistributionAsync();
+    }
+}

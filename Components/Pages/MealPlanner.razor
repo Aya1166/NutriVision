@@ -1,0 +1,180 @@
+﻿@page "/mealplanner"
+@rendermode InteractiveServer
+
+@using NutriVision.Models
+@using NutriVision.Services
+
+@inject RecipeService RecipeService
+
+@inject RecipeIngredientService RecipeIngredientService
+
+<h1 class="page-title">
+    Smart Meal Planner
+</h1>
+
+<div class="planner-grid">
+
+    <div class="planner-card">
+
+        <h2>🌅 Breakfast</h2>
+
+        <InputSelect @bind-Value="selectedBreakfastId">
+
+            <option value="0">Choose Recipe</option>
+
+            @foreach (var recipe in recipes)
+            {
+                <option value="@recipe.Id">
+                    @recipe.Name
+                </option>
+            }
+
+        </InputSelect>
+
+    </div>
+
+    <div class="planner-card">
+
+        <h2>☀️ Lunch</h2>
+
+        <InputSelect @bind-Value="selectedLunchId">
+
+            <option value="0">Choose Recipe</option>
+
+            @foreach (var recipe in recipes)
+            {
+                <option value="@recipe.Id">
+                    @recipe.Name
+                </option>
+            }
+
+        </InputSelect>
+
+    </div>
+
+    <div class="planner-card">
+
+        <h2>🌙 Dinner</h2>
+
+        <InputSelect @bind-Value="selectedDinnerId">
+
+            <option value="0">Choose Recipe</option>
+
+            @foreach (var recipe in recipes)
+            {
+                <option value="@recipe.Id">
+                    @recipe.Name
+                </option>
+            }
+
+        </InputSelect>
+
+    </div>
+
+</div>
+
+<button class="calculate-btn"
+        @onclick="CalculateCalories">
+
+    Calculate Daily Calories
+
+</button>
+
+<div class="summary-card">
+
+    <h2>🔥 Daily Nutrition Summary</h2>
+
+    <div class="meal-summary">
+
+        <p>
+            🌅 Breakfast:
+            <strong>@breakfastCalories kcal</strong>
+        </p>
+
+        <p>
+            ☀️ Lunch:
+            <strong>@lunchCalories kcal</strong>
+        </p>
+
+        <p>
+            🌙 Dinner:
+            <strong>@dinnerCalories kcal</strong>
+        </p>
+
+    </div>
+
+    <div class="total-day-calories">
+
+        Total Daily Calories:
+        <strong>@totalCalories kcal</strong>
+
+    </div>
+
+</div>
+
+@code {
+
+    private List<Recipe> recipes = new();
+
+    private int selectedBreakfastId;
+
+    private int selectedLunchId;
+
+    private int selectedDinnerId;
+
+    private double breakfastCalories;
+
+    private double lunchCalories;
+
+    private double dinnerCalories;
+
+    private double totalCalories;
+
+    protected override async Task OnInitializedAsync()
+    {
+        recipes = await RecipeService.GetRecipesAsync();
+    }
+
+    private string GetRecipeName(int id)
+    {
+        return recipes
+            .FirstOrDefault(r => r.Id == id)?.Name
+            ?? "No recipe selected";
+    }
+
+    private async Task CalculateCalories()
+    {
+        breakfastCalories = 0;
+        lunchCalories = 0;
+        dinnerCalories = 0;
+
+        if (selectedBreakfastId != 0)
+        {
+            breakfastCalories =
+                await RecipeIngredientService
+                    .CalculateRecipeCaloriesAsync(
+                        selectedBreakfastId);
+        }
+
+        if (selectedLunchId != 0)
+        {
+            lunchCalories =
+                await RecipeIngredientService
+                    .CalculateRecipeCaloriesAsync(
+                        selectedLunchId);
+        }
+
+        if (selectedDinnerId != 0)
+        {
+            dinnerCalories =
+                await RecipeIngredientService
+                    .CalculateRecipeCaloriesAsync(
+                        selectedDinnerId);
+        }
+
+        totalCalories =
+            breakfastCalories
+            + lunchCalories
+            + dinnerCalories;
+    }
+}

@@ -1,0 +1,328 @@
+﻿@page "/recipes"
+@rendermode InteractiveServer
+
+@using NutriVision.Models
+@using NutriVision.Services
+
+@inject RecipeService RecipeService
+
+@inject IJSRuntime JS
+
+<h1 class="page-title">Recipe Management</h1>
+
+<div class="section-title">
+    Create New Recipe
+</div>
+
+<EditForm Model="@recipe"
+          OnValidSubmit="AddRecipe"
+          FormName="RecipeForm">
+
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-container">
+
+        <div class="input-group">
+            <label>Recipe Name</label>
+
+            <InputText @bind-Value="recipe.Name"
+                       placeholder="Ex: Pasta Carbonara" />
+        </div>
+
+        <div class="input-group">
+            <label>Description</label>
+
+            <InputText @bind-Value="recipe.Description"
+                       placeholder="Short recipe description" />
+        </div>
+
+        <div class="input-group">
+            <label>Category</label>
+
+            <InputSelect @bind-Value="recipe.Category">
+
+                <option value="">Select category</option>
+
+                <option>Breakfast</option>
+                <option>Lunch</option>
+                <option>Dinner</option>
+                <option>Dessert</option>
+
+            </InputSelect>
+        </div>
+
+        <div class="input-group">
+            <label>Cuisine Type</label>
+
+            <InputSelect @bind-Value="recipe.CuisineType">
+
+                <option value="">Select cuisine</option>
+
+                <option>Tunisian</option>
+                <option>Italian</option>
+                <option>French</option>
+                <option>Mediterranean</option>
+                <option>Asian</option>
+
+            </InputSelect>
+        </div>
+
+        <div class="input-group">
+            <label>Servings</label>
+
+            <InputNumber @bind-Value="recipe.Servings" />
+        </div>
+
+        <div class="input-group">
+            <label>Preparation Time (minutes)</label>
+
+            <InputNumber @bind-Value="recipe.PreparationTime" />
+        </div>
+
+        <div class="input-group">
+            <label>Difficulty</label>
+
+            <InputSelect @bind-Value="recipe.Difficulty">
+
+                <option value="">Select difficulty</option>
+
+                <option>Easy</option>
+                <option>Medium</option>
+                <option>Hard</option>
+
+            </InputSelect>
+        </div>
+
+        <div class="input-group">
+            <label>Recipe Image URL</label>
+
+            <InputText @bind-Value="recipe.ImageUrl"
+                       placeholder="Paste image URL" />
+        </div>
+
+    </div>
+
+    <button class="add-btn" type="submit">
+
+        @(isEditing ? "Update Recipe" : "+ Create Recipe")
+
+    </button>
+
+</EditForm>
+
+<div class="filter-container">
+
+    <InputText @bind-Value="searchTerm"
+               placeholder="Search by recipe name..." />
+
+    <InputSelect @bind-Value="selectedCategory">
+
+        <option value="">All Categories</option>
+
+        <option>Breakfast</option>
+        <option>Lunch</option>
+        <option>Dinner</option>
+        <option>Dessert</option>
+
+    </InputSelect>
+
+    <InputSelect @bind-Value="selectedCuisine">
+
+        <option value="">All Cuisines</option>
+
+        <option>Tunisian</option>
+        <option>Italian</option>
+        <option>French</option>
+        <option>Mediterranean</option>
+        <option>Asian</option>
+
+    </InputSelect>
+
+    <button type="button"
+            class="search-btn"
+            @onclick="SearchRecipes">
+
+        Search
+
+    </button>
+
+    <button type="button"
+            class="search-btn"
+            @onclick="ResetFilters">
+
+        Reset
+
+    </button>
+
+</div>
+
+<div class="section-title">
+    Recipe Library
+</div>
+
+<div class="recipe-grid">
+
+    @foreach (var item in recipes)
+    {
+        <div class="recipe-card">
+
+            <img src="@item.ImageUrl"
+                 alt="@item.Name" />
+
+            <div class="recipe-content">
+
+                <div class="recipe-tags">
+
+                    <span class="category-tag">
+                        @item.Category
+                    </span>
+
+                    <span class="cuisine-tag">
+                        @item.CuisineType
+                    </span>
+
+                </div>
+
+                <h3>@item.Name</h3>
+
+                <p>@item.Description</p>
+
+                <div class="recipe-info">
+
+                    <span>🍽️ @item.Servings servings</span>
+
+                    <span>⏱️ @item.PreparationTime min</span>
+
+                </div>
+
+                <div class="difficulty">
+                    ⭐ @item.Difficulty
+                </div>
+
+                <a class="details-btn"
+                   href="/recipe-details/@item.Id">
+
+                    Manage Ingredients
+
+                </a>
+
+                <button class="edit-btn"
+                        @onclick="() => EditRecipe(item)">
+
+                    Edit Recipe
+
+                </button>
+
+                <button class="delete-btn"
+                        @onclick='async () =>
+                                {
+                                    bool confirmed = await JS.InvokeAsync<bool>(
+                                        "confirm",
+                                        "Delete this recipe?");
+
+                                    if (confirmed)
+                                    {
+                                        await DeleteRecipe(item.Id);
+                                    }
+                                }'>
+
+                    Delete Recipe
+
+                </button>
+
+            </div>
+
+        </div>
+    }
+
+</div>
+
+@code {
+
+    private Recipe recipe = new();
+
+    private List<Recipe> recipes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        recipes = await RecipeService.GetRecipesAsync();
+    }
+
+    private async Task AddRecipe()
+    {
+        if (isEditing)
+        {
+            await RecipeService.UpdateRecipeAsync(recipe);
+
+            isEditing = false;
+        }
+        else
+        {
+            await RecipeService.AddRecipeAsync(recipe);
+        }
+
+        recipes = await RecipeService.GetRecipesAsync();
+
+        recipe = new Recipe();
+    }
+
+    private string searchTerm = "";
+
+    private string selectedCategory = "";
+
+    private string selectedCuisine = "";
+
+    private async Task SearchRecipes()
+    {
+        recipes = await RecipeService.SearchRecipesAsync(
+            searchTerm,
+            selectedCategory,
+            selectedCuisine);
+    }
+
+    private async Task ResetFilters()
+    {
+        searchTerm = "";
+
+        selectedCategory = "";
+
+        selectedCuisine = "";
+
+        recipes = await RecipeService.GetRecipesAsync();
+    }
+
+    private async Task OnSearchChanged(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? "";
+
+        await SearchRecipes();
+    }
+
+    private async Task DeleteRecipe(int id)
+    {
+        await RecipeService.DeleteRecipeAsync(id);
+
+        recipes = await RecipeService.GetRecipesAsync();
+    }
+
+    private bool isEditing = false;
+
+    private void EditRecipe(Recipe selectedRecipe)
+    {
+        recipe = new Recipe
+        {
+            Id = selectedRecipe.Id,
+            Name = selectedRecipe.Name,
+            Description = selectedRecipe.Description,
+            Category = selectedRecipe.Category,
+            CuisineType = selectedRecipe.CuisineType,
+            Servings = selectedRecipe.Servings,
+            PreparationTime = selectedRecipe.PreparationTime,
+            Difficulty = selectedRecipe.Difficulty,
+            ImageUrl = selectedRecipe.ImageUrl
+        };
+
+        isEditing = true;
+    }
+}
